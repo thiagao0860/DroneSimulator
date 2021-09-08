@@ -4,10 +4,11 @@ import math
 import logging
 import controler
 import time
+import string
 import numpy as np
+import threading
 
 class Drone:
-
 
     def __init__(self, image,frameconfig): 
         self.image = image
@@ -111,8 +112,7 @@ def eventKeyDownHandler(event,o):
     else:
         logging.debug("Unknow Key Pressed: " + str(event.key))
 
-def main():
-    state_vector = controler.simulate(60)
+def mainFrameHandle(simulator):
     frameconfig={
         'width': 1200,
         'height': 600
@@ -124,28 +124,45 @@ def main():
     background = pygame.transform.scale(background,(1200,600))
     screen.blit(background, (0, 0))
     o = Drone(player,frameconfig)
-    prev_time=time.time()
-    i=0
     while True:
+        state_vector = simulator.x
+        last_delta_tick =np.minimum(simulator.last_delta_tick,80)
         screen.blit(background, o.pos, o.pos)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
+                logging.debug("KeyDown Event")
                 #eventKeyDownHandler(event,o)
                 pass
-        now=time.time()
-        dt=now-prev_time
-        prev_time=now
-        di=math.floor(dt/5e-4)
-        i=i+di
-        if i  not in range(len(state_vector[1,:])):
-            i=0
-        o.posByCenter(state_vector[2,i],state_vector[3,i])
-        o.set_rotation(state_vector[6,i]*180/np.pi)
+        memory_ocup= len(state_vector[1,:])
+        show_row= memory_ocup-5*last_delta_tick
+        o.posByCenter(state_vector[2,show_row],state_vector[3,show_row])
+        o.set_rotation(state_vector[6,show_row]*180/np.pi)
         screen.blit(o.image, o.pos)
         pygame.display.update()
 
+def simulationHandle(simulator):
+    while True:
+        simulator.nextStep()
+
+def main():
+    simulator = controler.iteractiveSimulator(120)
+    simulator.fillTimeWindow()
+    sim_thread = threading.Thread(target=simulationHandle,args=(simulator,),daemon=True)
+    sim_thread.start()
+    frame_thread = threading.Thread(target=mainFrameHandle,args=(simulator,))
+    frame_thread.start()
+    try:
+        while True:
+            a=input()
+            x, y=[float(i) for i in a.split(',')]
+            print('point ({},{})'.format(x, y))
+            simulator.r_= np.array([x, y]).transpose()
+    finally:
+        exit()
+
+
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.WARNING)
     main()
