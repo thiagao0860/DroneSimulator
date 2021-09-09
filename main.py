@@ -119,7 +119,7 @@ def mainFrameHandle(simulator):
     }
     screen = pygame.display.set_mode((frameconfig['width'],frameconfig['height']))
     player = pygame.image.load('drone.png.')
-    player = pygame.transform.scale(player,(80,80))
+    player = pygame.transform.scale(player,(160,80))
     background = pygame.image.load('background.jpg') 
     background = pygame.transform.scale(background,(1200,600))
     screen.blit(background, (0, 0))
