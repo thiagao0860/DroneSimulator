@@ -147,7 +147,7 @@ def simulationHandle(simulator):
         simulator.nextStep()
 
 def main():
-    simulator = controler.iteractiveSimulator(120)
+    simulator = controler.IteractiveSimulator(120)
     simulator.fillTimeWindow()
     sim_thread = threading.Thread(target=simulationHandle,args=(simulator,),daemon=True)
     sim_thread.start()

@@ -167,7 +167,7 @@ def simulate(time):
 
     return x
 
-class iteractiveSimulator:
+class IteractiveSimulator:
     def __init__(self,timewindow):
         self.total_ticks=0
         self.total_time=0
@@ -200,7 +200,6 @@ class iteractiveSimulator:
         self.w_max = 15000
         self.Fc_max = self.kf*self.w_max**2 # Força de controle máximo
         self.Tc_max = self.l*self.kf*self.w_max**2
-
         # Waypoints
         self.r_ = np.array([0.,0.]).transpose()
 
@@ -375,8 +374,6 @@ class iteractiveSimulator:
 
         self.total_ticks += delta_ticks
         self.total_time += delta_time
-
-
 
 if __name__ == '__main__':
     logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
