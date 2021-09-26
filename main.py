@@ -1,4 +1,5 @@
 import pygame
+import copy
 import sys
 import math
 import logging
@@ -7,20 +8,21 @@ import time
 import string
 import numpy as np
 import threading
+from dataclasses import dataclass
 
 class Drone:
-
+    space_config = {
+            'x_min': -60.0,
+            'x_max': 60.0,
+            'y_min': -10.0,
+            'y_max': 60.0,
+    }
     def __init__(self, image,frameconfig): 
         self.image = image
         self.__base_image=image
         self.angle = 0
         self.frameconfig=frameconfig
-        self.space_config={
-            'x_min': -60,
-            'x_max': 60,
-            'y_min': -10,
-            'y_max': 40,
-        }
+        self.space_config=Drone.space_config
         # [x,y] vector
         self.posByCenter(0,0)
      
@@ -80,37 +82,92 @@ class Drone:
         x_transformed= x/x_factor
         return [x_transformed,y_transformed]
 
-def eventKeyDownHandler(event,o):
-    #Arrows Handle
+class Target:
+    @dataclass
+    class Point:
+        x: float
+        y: float
+
+    def __init__(self,x_co,y_co):
+        self.t_point = Target.Point(x_co,y_co)
+        self.velocity =2.0 #base velocity
+        self.aceleration = 0.0 #only for muvControl
+        self.space_config= Drone.space_config
+        self.instant_vector=[0,0]
+        self.refresh=self.mruControl
+
+    def getVector(self):
+        return np.array([self.t_point.x,self.t_point.y]).transpose()
+    
+    def setX(self,value):
+        new_x= self.t_point.x + value 
+        if new_x <= self.space_config['x_max'] and new_x >= self.space_config['x_min']:
+            self.t_point.x = new_x
+
+    def setY(self,value):
+        new_y= self.t_point.y + value
+        if new_y <= self.space_config['y_max'] and new_y >= self.space_config['y_min']:
+            self.t_point.y =new_y
+
+    def mruControl(self,instant):
+        self.setX(self.velocity*instant[0])
+        self.setY(self.velocity*instant[1])
+
+    #TODO
+    def muvControl(self):
+        pass
+
+
+def eventKeyHandler(event,o):
+    ###implementing  mru control
+    
+    #region for muvControl ignore it for now
+    sighn=None
+    logging.debug('Key Handler')
+    if event.type == pygame.KEYUP:
+        logging.debug("KeyUp Event")
+        sighn = -1.0
+    elif event.type == pygame.KEYDOWN:
+        logging.debug("KeyDown Event")
+        sighn = 1.0
+    #endregion
+        
     if event.key == pygame.K_UP:
         logging.debug('UP Key Pressed')
-        #o.translate(0,-1)
+        o.refresh((0,1))
+        return
     elif event.key == pygame.K_DOWN:
         logging.debug("DOWN Key Pressed")
-        #o.translate(0,1)
+        o.refresh((0,-1))
+        return
     elif event.key == pygame.K_LEFT:
         logging.debug("LEFT Key Pressed")
-        o.rotate(5)
+        o.refresh((-1,0))
+        return
     elif event.key == pygame.K_RIGHT:
         logging.debug("RIGHT Key Pressed")
-        o.rotate(-5)
+        o.refresh((1,0))
+        return
     
-    #WASD Handle
     if event.key == pygame.K_w:
         logging.debug('W Key Pressed')
-        o.translate(0,5)
+        o.refresh((0,1))
+        return
     elif event.key == pygame.K_s:
         logging.debug("S Key Pressed")
-        o.translate(0,-5)
+        o.refresh((0,1))
+        return
     elif event.key == pygame.K_a:
         logging.debug("D Key Pressed")
-        o.translate(-10,0)
+        o.refresh((0,1))
+        return
     elif event.key == pygame.K_d:
         logging.debug("A Key Pressed")
-        o.translate(10,0)
+        o.refresh((0,1))
+        return
+
     
-    else:
-        logging.debug("Unknow Key Pressed: " + str(event.key))
+    logging.debug("Unknow Key Pressed: " + str(event.key))
 
 def mainFrameHandle(simulator):
     frameconfig={
@@ -124,19 +181,20 @@ def mainFrameHandle(simulator):
     background = pygame.transform.scale(background,(1200,600))
     screen.blit(background, (0, 0))
     o = Drone(player,frameconfig)
+    target = simulator.r_
     while True:
-        state_vector = simulator.x
+        state_vector = copy.deepcopy(simulator.x)
         last_delta_tick =np.minimum(simulator.last_delta_tick,80)
         screen.blit(background, o.pos, o.pos)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                logging.debug("KeyDown Event")
-                #eventKeyDownHandler(event,o)
-                pass
+                exit()
+            elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+                eventKeyHandler(event,target)
+        
         memory_ocup= len(state_vector[1,:])
-        show_row= memory_ocup-5*last_delta_tick
+        show_row= memory_ocup-2*last_delta_tick
         o.posByCenter(state_vector[2,show_row],state_vector[3,show_row])
         o.set_rotation(state_vector[6,show_row]*180/np.pi)
         screen.blit(o.image, o.pos)
@@ -147,22 +205,16 @@ def simulationHandle(simulator):
         simulator.nextStep()
 
 def main():
-    simulator = controler.IteractiveSimulator(120)
+    simulator = controler.IteractiveSimulator(35,Target(0,0))
     simulator.fillTimeWindow()
     sim_thread = threading.Thread(target=simulationHandle,args=(simulator,),daemon=True)
     sim_thread.start()
     frame_thread = threading.Thread(target=mainFrameHandle,args=(simulator,))
     frame_thread.start()
-    try:
-        while True:
-            a=input()
-            x, y=[float(i) for i in a.split(',')]
-            print('point ({},{})'.format(x, y))
-            simulator.r_= np.array([x, y]).transpose()
-    finally:
-        exit()
+    frame_thread.join()
+    exit()
 
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.WARNING)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
     main()

@@ -1,3 +1,4 @@
+from main import Target
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
@@ -50,7 +51,8 @@ def rk4(tk, h, xk, uk):
     xkp1 = xk +(h/6.0)*(k1 + 2*k2 + 2*k3 + k4)
     return xkp1
 
-def simulate(time):
+#used for tests
+def limitedTimeSimulate(time):
     h = 5e-4 # passo da simulação de tempo continuo
     Ts = 0.005 # intervalo de atuação do controlador
     fTh = Ts/h
@@ -167,11 +169,14 @@ def simulate(time):
 
     return x
 
+
 class IteractiveSimulator:
-    def __init__(self,timewindow):
+    def __init__(self,timewindow,target):
         self.total_ticks=0
         self.total_time=0
         self.last_delta_tick=0
+        self.aux_iteration=0
+        self.prev_time=time.time()
         self.h = 5e-4 # passo da simulação de tempo continuo
         self.Ts = 0.005 # intervalo de atuação do controlador
         self.fTh = self.Ts/self.h
@@ -201,7 +206,7 @@ class IteractiveSimulator:
         self.Fc_max = self.kf*self.w_max**2 # Força de controle máximo
         self.Tc_max = self.l*self.kf*self.w_max**2
         # Waypoints
-        self.r_ = np.array([0.,0.]).transpose()
+        self.r_ = target
 
     ## Execution
     def fillTimeWindow(self):
@@ -220,7 +225,7 @@ class IteractiveSimulator:
                 # Controle de Posição
                 kpP = np.array([.075])
                 kdP = np.array([0.25])
-                eP = self.r_ - r_k
+                eP = self.r_.getVector() - r_k
                 eV = v_ - v_k
                 self.eP_[:,j] = eP
                 # Definição do próximo waypoint
@@ -269,25 +274,26 @@ class IteractiveSimulator:
                 j = j+1
             # Simulação um passo a frente
             self.x[:,k+1] = rk4(self.tc[k], self.h, self.x[:,k], self.u[:,j-1])
-
-        # Processaento de variáveis intermediárias
-        # obtem a força aplicada por cada rotor
-        #self.f = np.zeros([3, self.tam])
-        #for k in range(self.tam):
-        #    w = self.x[0:2,k]
-        #    self.f[0:2,k] = np.array([self.kf*w[0]**2, self.kf*w[1]**2])
-        #    self.f[2,k] = self.f[0,k] + self.f[1,k] # Força total em B
+        now= time.time()
+        logging.debug('total start time: '+str(now-self.prev_time))
         self.prev_time=time.time()
         self.total_ticks+=self.tam
         self.total_time+=self.maxT
+        self.aux_iteration+=(self.tam)
+        logging.debug('total ticks matrix: '+str(self.total_ticks))
+        logging.debug('total observes matrix: '+str(len(self.u[1,:])))
+
 
     def nextStep(self):
         now = time.time()
         delta_time = now - self.prev_time
         self.prev_time = now
         # one tick is step in the simulation
-        delta_ticks =math.ceil(delta_time/self.h)
-        delta_observed =math.ceil(delta_time/self.Ts)
+        delta_ticks =math.floor(delta_time/self.h)
+        delta_observed =math.floor(delta_time/self.Ts)
+        if delta_ticks > self.total_ticks:
+            delta_ticks=delta_ticks/2
+            delta_observed=delta_observed/2
         self.last_delta_tick=delta_ticks
         
 
@@ -310,7 +316,7 @@ class IteractiveSimulator:
         for n in range(delta_ticks):
             k=len(self.tc)-delta_ticks+n-1
 
-            if (k % self.fTh) == 0:
+            if (self.tam % self.fTh) == 0:
                 # Extrai os dados do vetor
                 r_k = self.x[2:4,k]
                 v_k = self.x[4:6,k]
@@ -322,7 +328,7 @@ class IteractiveSimulator:
                 # Controle de Posição
                 kpP = np.array([.075])
                 kdP = np.array([0.25])
-                eP = self.r_ - r_k
+                eP = self.r_.getVector() - r_k
                 eV = v_ - v_k
                 self.eP_[:,j] = eP
                 # Definição do próximo waypoint
@@ -371,10 +377,11 @@ class IteractiveSimulator:
                 j = j+1
             # Simulação um passo a frente
             self.x[:,k+1] = rk4(self.tc[k], self.h, self.x[:,k], self.u[:,j-1])
+            self.tam+=1
 
         self.total_ticks += delta_ticks
         self.total_time += delta_time
 
 if __name__ == '__main__':
     logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
-    simulate(60)
+    limitedTimeSimulate(60)
