@@ -5,7 +5,6 @@ import math
 import logging
 import controler
 import time
-import string
 import numpy as np
 import threading
 from dataclasses import dataclass
@@ -100,18 +99,32 @@ class Target:
         return np.array([self.t_point.x,self.t_point.y]).transpose()
     
     def setX(self,value):
-        new_x= self.t_point.x + value 
+        new_x= value 
         if new_x <= self.space_config['x_max'] and new_x >= self.space_config['x_min']:
             self.t_point.x = new_x
 
     def setY(self,value):
+        new_y= value
+        if new_y <= self.space_config['y_max'] and new_y >= self.space_config['y_min']:
+            self.t_point.y =new_y
+
+    def translateX(self,value):
+        new_x= self.t_point.x + value 
+        if new_x <= self.space_config['x_max'] and new_x >= self.space_config['x_min']:
+            self.t_point.x = new_x
+
+    def translateY(self,value):
         new_y= self.t_point.y + value
         if new_y <= self.space_config['y_max'] and new_y >= self.space_config['y_min']:
             self.t_point.y =new_y
 
+    def setLocal(self,xy_tuple):
+        self.setX(xy_tuple[0])
+        self.setY(xy_tuple[1])
+
     def mruControl(self,instant):
-        self.setX(self.velocity*instant[0])
-        self.setY(self.velocity*instant[1])
+        self.translateX(self.velocity*instant[0])
+        self.translateY(self.velocity*instant[1])
 
     #TODO
     def muvControl(self):
@@ -205,16 +218,23 @@ def simulationHandle(simulator):
         simulator.nextStep()
 
 def main():
-    simulator = controler.IteractiveSimulator(35,Target(0,0))
+    target = Target(0,0)
+    simulator = controler.IteractiveSimulator(35,target)
     simulator.fillTimeWindow()
     sim_thread = threading.Thread(target=simulationHandle,args=(simulator,),daemon=True)
     sim_thread.start()
     frame_thread = threading.Thread(target=mainFrameHandle,args=(simulator,))
     frame_thread.start()
-    frame_thread.join()
-    exit()
+    try:
+        while True:
+            a=input()
+            x, y=[float(i) for i in a.split(',')]
+            print('target point ({},{})'.format(x, y))
+            target.setLocal((x,y))
+    finally:
+        exit()
 
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.ERROR)
     main()
