@@ -195,9 +195,11 @@ def mainFrameHandle(simulator):
     screen.blit(background, (0, 0))
     o = Drone(player,frameconfig)
     target = simulator.r_
+    showing_state = [0,0,0]
+    time_cut_acum =0
     while True:
+        last_delta_tick = copy.deepcopy(np.minimum(simulator.last_delta_tick,80))
         state_vector = copy.deepcopy(simulator.x)
-        last_delta_tick =np.minimum(simulator.last_delta_tick,80)
         screen.blit(background, o.pos, o.pos)
         
         for event in pygame.event.get():
@@ -205,13 +207,32 @@ def mainFrameHandle(simulator):
                 exit()
             elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                 eventKeyHandler(event,target)
-        
+
+
         memory_ocup= len(state_vector[1,:])
         show_row= memory_ocup-2*last_delta_tick
-        o.posByCenter(state_vector[2,show_row],state_vector[3,show_row])
-        o.set_rotation(state_vector[6,show_row]*180/np.pi)
+        if (testeDataQuality(showing_state,state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row])):
+            if time_cut_acum>5:
+                o.posByCenter(showing_state[0],showing_state[1])
+                o.set_rotation(showing_state[2]*180/np.pi)
+        else :
+            time_cut_acum =0
+        time_cut_acum+=1
+        showing_state = [state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row]] 
         screen.blit(o.image, o.pos)
         pygame.display.update()
+
+def testeDataQuality(showing_state,x,y,rot):
+    threshold = 1
+    delta_x = showing_state[0]-x
+    delta_y = showing_state[1]-y
+    delta_rot = showing_state[2]-rot
+    norma = math.sqrt(delta_x**2+delta_y**2+delta_rot**2)
+    if (norma>1):
+        logging.debug('norma:' + str(norma))
+        return False
+    else:
+        return True
 
 def simulationHandle(simulator):
     while True:
@@ -236,5 +257,5 @@ def main():
 
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.ERROR)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
     main()
