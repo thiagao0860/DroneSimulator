@@ -177,7 +177,7 @@ class IteractiveSimulator:
         self.last_delta_tick=0
         self.aux_iteration=0
         self.prev_time=time.time()
-        self.h = 5e-4 # passo da simulação de tempo continuo
+        self.h = 5e-4 # passo da simulação de tempo continuo    
         self.Ts = 0.005 # intervalo de atuação do controlador
         self.fTh = self.Ts/self.h
         self.maxT = timewindow
@@ -283,7 +283,6 @@ class IteractiveSimulator:
         logging.debug('total ticks matrix: '+str(self.total_ticks))
         logging.debug('total observes matrix: '+str(len(self.u[1,:])))
 
-
     def nextStep(self):
         now = time.time()
         delta_time = now - self.prev_time
@@ -379,9 +378,8 @@ class IteractiveSimulator:
             self.x[:,k+1] = rk4(self.tc[k], self.h, self.x[:,k], self.u[:,j-1])
             self.tam+=1
 
-        self.total_ticks += delta_ticks
         self.total_time += delta_time
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.ERROR)
     limitedTimeSimulate(60)

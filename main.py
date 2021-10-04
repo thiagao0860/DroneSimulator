@@ -130,7 +130,6 @@ class Target:
     def muvControl(self):
         pass
 
-
 def eventKeyHandler(event,o):
     ###implementing  mru control
     
@@ -211,7 +210,7 @@ def mainFrameHandle(simulator):
 
         memory_ocup= len(state_vector[1,:])
         show_row= memory_ocup-2*last_delta_tick
-        if (testeDataQuality(showing_state,state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row])):
+        if (testDataQuality(showing_state,state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row])):
             if time_cut_acum>5:
                 o.posByCenter(showing_state[0],showing_state[1])
                 o.set_rotation(showing_state[2]*180/np.pi)
@@ -222,7 +221,7 @@ def mainFrameHandle(simulator):
         screen.blit(o.image, o.pos)
         pygame.display.update()
 
-def testeDataQuality(showing_state,x,y,rot):
+def testDataQuality(showing_state,x,y,rot):
     threshold = 1
     delta_x = showing_state[0]-x
     delta_y = showing_state[1]-y
@@ -257,5 +256,5 @@ def main():
 
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    logger=logging.basicConfig(encoding='utf-8', level=logging.ERROR)
     main()
