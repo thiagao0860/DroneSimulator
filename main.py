@@ -194,8 +194,7 @@ def mainFrameHandle(simulator):
     screen.blit(background, (0, 0))
     o = Drone(player,frameconfig)
     target = simulator.r_
-    showing_state = [0,0,0]
-    time_cut_acum =0
+    showing_state = [0,0,0,0]
     while True:
         last_delta_tick = copy.deepcopy(np.minimum(simulator.last_delta_tick,80))
         state_vector = copy.deepcopy(simulator.x)
@@ -210,14 +209,10 @@ def mainFrameHandle(simulator):
 
         memory_ocup= len(state_vector[1,:])
         show_row= memory_ocup-2*last_delta_tick
-        if (testDataQuality(showing_state,state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row])):
-            if time_cut_acum>5:
-                o.posByCenter(showing_state[0],showing_state[1])
-                o.set_rotation(showing_state[2]*180/np.pi)
-        else :
-            time_cut_acum =0
-        time_cut_acum+=1
-        showing_state = [state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row]] 
+        if testDataQuality(showing_state,state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row]):
+            o.posByCenter(showing_state[0],showing_state[1])
+            o.set_rotation(showing_state[2]*180/np.pi)
+        showing_state = [state_vector[2,show_row],state_vector[3,show_row],state_vector[6,show_row],state_vector[8,show_row]] 
         screen.blit(o.image, o.pos)
         pygame.display.update()
 
@@ -227,7 +222,7 @@ def testDataQuality(showing_state,x,y,rot):
     delta_y = showing_state[1]-y
     delta_rot = showing_state[2]-rot
     norma = math.sqrt(delta_x**2+delta_y**2+delta_rot**2)
-    if (norma>1):
+    if (norma>1) or showing_state[3]!=1:
         logging.debug('norma:' + str(norma))
         return False
     else:

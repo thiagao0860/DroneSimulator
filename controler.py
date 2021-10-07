@@ -186,9 +186,9 @@ class IteractiveSimulator:
         self.tam = len(self.tc)
         self.j = 0
         # x = [ w r_xy v_xy phi omega]' \in R^8
-        self.x = np.zeros([8, self.tam])
+        self.x = np.zeros([9, self.tam])
         #x[:,0] = np.array([0.,1.,2,3,4,5,6,7,])
-        self.x[:,0] = np.array([0., 0., 0., 0., 0., .0, 0*np.pi/180., 0*np.pi/180.])
+        self.x[:,0] = np.array([0., 0., 0., 0., 0., .0, 0*np.pi/180., 0*np.pi/180., 1])
         self.u = np.zeros([2,len(self.td)]) # comando de controle
 
         self.eP_ = np.zeros([2,len(self.td)])
@@ -273,7 +273,8 @@ class IteractiveSimulator:
                 self.u[:,j] = np.array([w1, w2])
                 j = j+1
             # Simulação um passo a frente
-            self.x[:,k+1] = rk4(self.tc[k], self.h, self.x[:,k], self.u[:,j-1])
+            self.x[0:8,k+1] = rk4(self.tc[k], self.h, self.x[0:8,k], self.u[:,j-1])
+            self.x[8,k+1] = 1
         now= time.time()
         logging.debug('total start time: '+str(now-self.prev_time))
         self.prev_time=time.time()
@@ -297,7 +298,7 @@ class IteractiveSimulator:
         
 
         self.x=np.delete(self.x,np.s_[0:delta_ticks],axis=1)
-        to_insert = np.zeros([8, delta_ticks])
+        to_insert = np.zeros([9, delta_ticks])
         self.x=np.append(self.x,to_insert,axis=1)
 
         self.u=np.delete(self.u,np.s_[0:delta_observed],axis=1)
@@ -375,7 +376,8 @@ class IteractiveSimulator:
                 self.u[:,j] = np.array([w1, w2])
                 j = j+1
             # Simulação um passo a frente
-            self.x[:,k+1] = rk4(self.tc[k], self.h, self.x[:,k], self.u[:,j-1])
+            self.x[0:8,k+1] = rk4(self.tc[k], self.h, self.x[0:8,k], self.u[:,j-1])
+            self.x[8,k+1] = 1
             self.tam+=1
 
         self.total_time += delta_time
