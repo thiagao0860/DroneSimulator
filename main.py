@@ -252,6 +252,6 @@ def main():
 
 
 if __name__ == '__main__':
-    #encoding not work in 3.8
+    #encoding not work in 3.8 
     logger=logging.basicConfig(level=logging.ERROR)
     main()
