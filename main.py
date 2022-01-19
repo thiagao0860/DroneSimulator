@@ -1,6 +1,7 @@
 import pygame
 import copy
 import sys
+import os
 import math
 import logging
 import controler
@@ -187,7 +188,7 @@ def mainFrameHandle(simulator):
         'height': 600
     }
     screen = pygame.display.set_mode((frameconfig['width'],frameconfig['height']))
-    player = pygame.image.load('drone.png.')
+    player = pygame.image.load('drone.png')
     player = pygame.transform.scale(player,(160,80))
     background = pygame.image.load('background.jpg') 
     background = pygame.transform.scale(background,(1200,600))
@@ -202,7 +203,7 @@ def mainFrameHandle(simulator):
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                os._exit(1)
             elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                 eventKeyHandler(event,target)
 
@@ -251,5 +252,5 @@ def main():
 
 
 if __name__ == '__main__':
-    logger=logging.basicConfig(encoding='utf-8', level=logging.ERROR)
+    logger=logging.basicConfig(level=logging.ERROR)
     main()
